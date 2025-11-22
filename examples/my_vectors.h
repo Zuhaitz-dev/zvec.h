@@ -9,9 +9,9 @@ typedef struct {
 } Point;
 
 #define REGISTER_TYPES(X) \
-    X(int)                \
-    X(float)              \
-    X(Point)
+    X(int, int)           \
+    X(float, float)       \
+    X(Point, Point)
 
 REGISTER_TYPES(DEFINE_VEC_TYPE)
 

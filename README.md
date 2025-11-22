@@ -37,11 +37,13 @@ typedef struct {
 } Point;
 
 // Register Types (The X-Macro):
-// List every type you want a vector for here:
-#define REGISTER_TYPES(X) \
-    X(int)                \
-    X(float)              \
-    X(Point)
+// Syntax: X(ActualType, ShortName).
+// - ActualType: The C type (e.g., 'unsigned long', 'struct Point').
+// - ShortName:  Suffix for the generated functions (e.g., 'ulong', 'Point').
+#define REGISTER_TYPES(X)     \
+    X(int, int)               \
+    X(unsigned long, ulong)   \
+    X(Point, Point)
 
 // This generates the implementation for you.
 REGISTER_TYPES(DEFINE_VEC_TYPE)
@@ -59,21 +61,21 @@ Include your **registry header** (`my_vectors.h`), not `zvec.h`.
 
 int main(void)
 {
-    // Initialize (allocated on stack, internal data on heap)
+    // Initialize (allocated on stack, internal data on heap).
     vec_int nums = vec_init(int);
 
-    // Push values
+    // Push values.
     vec_push(&nums, 10);
     vec_push(&nums, 20);
 
-    // Iterate
+    // Iterate.
     int *n;
     vec_foreach(&nums, n)
     {
         printf("%d ", *n);
     }
 
-    // Cleanup
+    // Cleanup.
     vec_free(&nums);
     return 0;
 }
@@ -107,7 +109,8 @@ int main(void)
 
 | Macro | Description |
 | :--- | :--- |
-| `vec_push(v, value)` | Appends `value` to the end of the vector. Auto-resizes if needed. |
+| `vec_push(v, value)` | Appends value to the end. Copies data twice (stack -> heap). Best for simple types. |
+| `vec_push_slot(v, value)` | Reserves space at the end and returns a **pointer** to it. Zero overhead. Best for large structs. |
 | `vec_pop(v)` | Removes the last element. Decrements length. |
 | `vec_pop_get(v)` | Removes the last element and **returns** its value. |
 | `vec_extend(v, arr, count)` | Appends `count` elements from the raw array `arr` to the end of the vector. |
@@ -122,3 +125,18 @@ int main(void)
 | `vec_foreach(v, iter)` | A loop helper. `iter` must be a pointer variable; it is assigned to each element in the vector sequentially. |
 | `vec_sort(v, cmp)` | Sorts the vector in-place using standard `qsort`. `cmp` is a function pointer: `int (*)(const T*, const T*)`. |
 | `vec_bsearch(v, key, cmp)` | Performs a binary search. Returns a pointer to the found element or `NULL`. `key` is `const void*`. |
+
+## Notes
+
+### Why do I need to provide a "Short Name"?
+
+In `REGISTER_TYPES(X)`, you must provide two arguments: the **Actual Type** and a **Short Name**.
+
+```c
+//      Actual Type   Short Name
+X(unsigned long,        ulong)
+```
+
+The reason is that C macros cannot handle spaces when generating names. The library tries to create functions by gluing `vec_` + `Name`.
+
+If you used `unsigned long` as the name, the macro would try to generate `vec_unsigned long`, which is a syntax error (variable names cannot contain spaces). But, by passing `ulong`, it correctly generates `vec_ulong`.

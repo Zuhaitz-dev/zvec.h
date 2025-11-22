@@ -1,4 +1,3 @@
-
 #ifndef ZVEC_H
 #define ZVEC_H
 
@@ -10,15 +9,15 @@
 #define VEC_OK 0
 #define VEC_ERR -1
 
-#define DEFINE_VEC_TYPE(T)                                                                  \
+#define DEFINE_VEC_TYPE(T, Name)                                                            \
 typedef struct {                                                                            \
     T *data;                                                                                \
     size_t length;                                                                          \
     size_t capacity;                                                                        \
-} vec_##T;                                                                                  \
+} vec_##Name;                                                                               \
                                                                                             \
-static inline vec_##T vec_init_capacity_##T(size_t cap) {                                   \
-    vec_##T v = {0};                                                                        \
+static inline vec_##Name vec_init_capacity_##Name(size_t cap) {                             \
+    vec_##Name v = {0};                                                                     \
     if (cap > 0) {                                                                          \
         v.data = calloc(cap, sizeof(T));                                                    \
         v.capacity = v.data ? cap : 0;                                                      \
@@ -26,7 +25,7 @@ static inline vec_##T vec_init_capacity_##T(size_t cap) {                       
     return v;                                                                               \
 }                                                                                           \
                                                                                             \
-static inline int vec_reserve_##T(vec_##T *v, size_t new_cap) {                             \
+static inline int vec_reserve_##Name(vec_##Name *v, size_t new_cap) {                       \
     if (new_cap <= v->capacity) return VEC_OK;                                              \
     T *new_data = realloc(v->data, new_cap * sizeof(T));                                    \
     if (!new_data) return VEC_ERR;                                                          \
@@ -35,43 +34,49 @@ static inline int vec_reserve_##T(vec_##T *v, size_t new_cap) {                 
     return VEC_OK;                                                                          \
 }                                                                                           \
                                                                                             \
-static inline int vec_is_empty_##T(vec_##T *v) {                                            \
+static inline int vec_is_empty_##Name(vec_##Name *v) {                                      \
     return v->length == 0;                                                                  \
 }                                                                                           \
                                                                                             \
-static inline int vec_push_##T(vec_##T *v, T value) {                                       \
+static inline T* vec_push_slot_##Name(vec_##Name *v) {                                      \
     if (v->length >= v->capacity) {                                                         \
         size_t new_cap = v->capacity == 0 ? 8 : v->capacity * 2;                            \
-        if (vec_reserve_##T(v, new_cap) != VEC_OK) return VEC_ERR;                          \
+        if (vec_reserve_##Name(v, new_cap) != VEC_OK) return NULL;                          \
     }                                                                                       \
-    v->data[v->length++] = value;                                                           \
+    return &v->data[v->length++];                                                           \
+}                                                                                           \
+                                                                                            \
+static inline int vec_push_##Name(vec_##Name *v, T value) {                                 \
+    T *slot = vec_push_slot_##Name(v);                                                      \
+    if (!slot) return VEC_ERR;                                                              \
+    *slot = value;                                                                          \
     return VEC_OK;                                                                          \
 }                                                                                           \
                                                                                             \
-static inline int vec_extend_##T(vec_##T *v, const T *items, size_t count) {                \
+static inline int vec_extend_##Name(vec_##Name *v, const T *items, size_t count) {          \
     if (v->length + count > v->capacity) {                                                  \
         size_t new_cap = v->capacity == 0 ? 8 : v->capacity;                                \
         while (new_cap < v->length + count) new_cap *= 2;                                   \
-        if (vec_reserve_##T(v, new_cap) != VEC_OK) return VEC_ERR;                          \
+        if (vec_reserve_##Name(v, new_cap) != VEC_OK) return VEC_ERR;                       \
     }                                                                                       \
     memcpy(v->data + v->length, items, count * sizeof(T));                                  \
     v->length += count;                                                                     \
     return VEC_OK;                                                                          \
 }                                                                                           \
                                                                                             \
-static inline void vec_pop_##T(vec_##T *v) {                                                \
+static inline void vec_pop_##Name(vec_##Name *v) {                                          \
     assert(v->length > 0 && "Popping empty vector");                                        \
     v->length--;                                                                            \
 }                                                                                           \
                                                                                             \
-static inline T vec_pop_get_##T(vec_##T *v) {                                               \
+static inline T vec_pop_get_##Name(vec_##Name *v) {                                         \
     assert(v->length > 0 && "Vector is empty, cannot pop!");                                \
     return v->data[--v->length];                                                            \
 }                                                                                           \
-static inline void vec_shrink_to_fit_##T(vec_##T *v) {                                      \
+static inline void vec_shrink_to_fit_##Name(vec_##Name *v) {                                \
     if (v->length == 0) {                                                                   \
         free(v->data);                                                                      \
-        *v = (vec_##T){0};                                                                  \
+        *v = (vec_##Name){0};                                                               \
         return;                                                                             \
     }                                                                                       \
     if (v->length == v->capacity) return;                                                   \
@@ -81,40 +86,40 @@ static inline void vec_shrink_to_fit_##T(vec_##T *v) {                          
     v->capacity = v->length;                                                                \
 }                                                                                           \
                                                                                             \
-static inline T* vec_at_##T(vec_##T *v, size_t index) {                                     \
+static inline T* vec_at_##Name(vec_##Name *v, size_t index) {                               \
     return (index < v->length) ? &v->data[index] : NULL;                                    \
 }                                                                                           \
                                                                                             \
-static inline T* vec_data_##T(vec_##T *v) {                                                 \
+static inline T* vec_data_##Name(vec_##Name *v) {                                           \
     return v->data;                                                                         \
 }                                                                                           \
                                                                                             \
-static inline T* vec_last_##T(vec_##T *v) {                                                 \
+static inline T* vec_last_##Name(vec_##Name *v) {                                           \
     return (v->length > 0) ? &v->data[v->length - 1] : NULL;                                \
 }                                                                                           \
                                                                                             \
-static inline void vec_remove_##T(vec_##T *v, size_t index) {                               \
+static inline void vec_remove_##Name(vec_##Name *v, size_t index) {                         \
     if (index >= v->length) return;                                                         \
     memmove(&v->data[index], &v->data[index + 1],                                           \
             (v->length - index - 1) * sizeof(T));                                           \
     v->length--;                                                                            \
 }                                                                                           \
                                                                                             \
-static inline void vec_swap_remove_##T(vec_##T *v, size_t index) {                          \
+static inline void vec_swap_remove_##Name(vec_##Name *v, size_t index) {                    \
     if (index >= v->length) return;                                                         \
     v->data[index] = v->data[--v->length];                                                  \
 }                                                                                           \
                                                                                             \
-static inline void vec_clear_##T(vec_##T *v) {                                              \
+static inline void vec_clear_##Name(vec_##Name *v) {                                        \
     v->length = 0;                                                                          \
 }                                                                                           \
                                                                                             \
-static inline void vec_free_##T(vec_##T *v) {                                               \
+static inline void vec_free_##Name(vec_##Name *v) {                                         \
     free(v->data);                                                                          \
-    *v = (vec_##T){0};                                                                      \
+    *v = (vec_##Name){0};                                                                   \
 }                                                                                           \
                                                                                             \
-static inline void vec_reverse_##T(vec_##T *v) {                                            \
+static inline void vec_reverse_##Name(vec_##Name *v) {                                      \
     if (v->length < 2) return;                                                              \
     size_t i = 0, j = v->length - 1;                                                        \
     while (i < j) {                                                                         \
@@ -125,60 +130,52 @@ static inline void vec_reverse_##T(vec_##T *v) {                                
     }                                                                                       \
 }                                                                                           \
                                                                                             \
-static inline void vec_sort_##T(vec_##T *v, int (*compar)(const T *, const T *)) {          \
+static inline void vec_sort_##Name(vec_##Name *v, int (*compar)(const T *, const T *)) {    \
     if (v->length > 1) {                                                                    \
         int (*qsort_cmp)(const void *, const void *) =                                      \
             (int (*)(const void *, const void *))compar;                                    \
         qsort(v->data, v->length, sizeof(T), qsort_cmp);                                    \
     }                                                                                       \
-}                                                                                           \
-                                                                                            \
-static inline T* vec_bsearch_##T(vec_##T *v, const void *key,                               \
-                                 int (*compar)(const T *, const T *)) {                     \
-    if (v->length == 0) return NULL;                                                        \
-    int (*bsearch_cmp)(const void *, const void *) =                                        \
-        (int (*)(const void *, const void *))compar;                                        \
-    return (T*) bsearch(key, v->data, v->length, sizeof(T), bsearch_cmp);                   \
 }
 
-#define PUSH_ENTRY(T)     vec_##T*: vec_push_##T,
-#define EXTEND_ENTRY(T)   vec_##T*: vec_extend_##T,
-#define RESERVE_ENTRY(T)  vec_##T*: vec_reserve_##T,
-#define IS_EMPTY_ENTRY(T) vec_##T*: vec_is_empty_##T,
-#define AT_ENTRY(T)       vec_##T*: vec_at_##T,
-#define DATA_ENTRY(T)     vec_##T*: vec_data_##T,
-#define LAST_ENTRY(T)     vec_##T*: vec_last_##T,
-#define FREE_ENTRY(T)     vec_##T*: vec_free_##T,
-#define POP_ENTRY(T)      vec_##T*: vec_pop_##T,
-#define POP_GET_ENTRY(T)  vec_##T*: vec_pop_get_##T,
-#define SHRINK_ENTRY(T)   vec_##T*: vec_shrink_to_fit_##T,
-#define REMOVE_ENTRY(T)   vec_##T*: vec_remove_##T,
-#define SWAP_REM_ENTRY(T) vec_##T*: vec_swap_remove_##T,
-#define CLEAR_ENTRY(T)    vec_##T*: vec_clear_##T,
-#define REVERSE_ENTRY(T)  vec_##T*: vec_reverse_##T,
-#define SORT_ENTRY(T)     vec_##T*: vec_sort_##T,
-#define BSEARCH_ENTRY(T)  vec_##T*: vec_bsearch_##T,
+#define PUSH_ENTRY(T, Name)     vec_##Name*: vec_push_##Name,
+#define PUSH_SLOT_ENTRY(T, Name) vec_##Name*: vec_push_slot_##Name,
+#define EXTEND_ENTRY(T, Name)   vec_##Name*: vec_extend_##Name,
+#define RESERVE_ENTRY(T, Name)  vec_##Name*: vec_reserve_##Name,
+#define IS_EMPTY_ENTRY(T, Name) vec_##Name*: vec_is_empty_##Name,
+#define AT_ENTRY(T, Name)       vec_##Name*: vec_at_##Name,
+#define DATA_ENTRY(T, Name)     vec_##Name*: vec_data_##Name,
+#define LAST_ENTRY(T, Name)     vec_##Name*: vec_last_##Name,
+#define FREE_ENTRY(T, Name)     vec_##Name*: vec_free_##Name,
+#define POP_ENTRY(T, Name)      vec_##Name*: vec_pop_##Name,
+#define POP_GET_ENTRY(T, Name)  vec_##Name*: vec_pop_get_##Name,
+#define SHRINK_ENTRY(T, Name)   vec_##Name*: vec_shrink_to_fit_##Name,
+#define REMOVE_ENTRY(T, Name)   vec_##Name*: vec_remove_##Name,
+#define SWAP_REM_ENTRY(T, Name) vec_##Name*: vec_swap_remove_##Name,
+#define CLEAR_ENTRY(T, Name)    vec_##Name*: vec_clear_##Name,
+#define REVERSE_ENTRY(T, Name)  vec_##Name*: vec_reverse_##Name,
+#define SORT_ENTRY(T, Name)     vec_##Name*: vec_sort_##Name,
 
-#define vec_push(v, val)          _Generic((v), REGISTER_TYPES(PUSH_ENTRY)      default: 0)      (v, val)
-#define vec_extend(v, arr, count) _Generic((v), REGISTER_TYPES(EXTEND_ENTRY)    default: 0)      (v, arr, count)
-#define vec_reserve(v, cap)       _Generic((v), REGISTER_TYPES(RESERVE_ENTRY)   default: 0)      (v, cap)
-#define vec_is_empty(v)           _Generic((v), REGISTER_TYPES(IS_EMPTY_ENTRY)  default: 0)      (v)
-#define vec_at(v, idx)            _Generic((v), REGISTER_TYPES(AT_ENTRY)        default: (void)0)(v, idx)
-#define vec_data(v)               _Generic((v), REGISTER_TYPES(DATA_ENTRY)      default: (void)0)(v)
-#define vec_last(v)               _Generic((v), REGISTER_TYPES(LAST_ENTRY)      default: (void)0)(v)
-#define vec_free(v)               _Generic((v), REGISTER_TYPES(FREE_ENTRY)      default: (void)0)(v)
-#define vec_pop(v)                _Generic((v), REGISTER_TYPES(POP_ENTRY)       default: (void)0)(v)
-#define vec_pop_get(v)            _Generic((v), REGISTER_TYPES(POP_GET_ENTRY)   default: (void)0)(v)
-#define vec_shrink_to_fit(v)      _Generic((v), REGISTER_TYPES(SHRINK_ENTRY)    default: (void)0)(v)
-#define vec_remove(v, i)          _Generic((v), REGISTER_TYPES(REMOVE_ENTRY)    default: (void)0)(v, i)
-#define vec_swap_remove(v, i)     _Generic((v), REGISTER_TYPES(SWAP_REM_ENTRY)  default: (void)0)(v, i)
-#define vec_clear(v)              _Generic((v), REGISTER_TYPES(CLEAR_ENTRY)     default: (void)0)(v)
-#define vec_reverse(v)            _Generic((v), REGISTER_TYPES(REVERSE_ENTRY)   default: (void)0)(v)
-#define vec_sort(v, cmp)          _Generic((v), REGISTER_TYPES(SORT_ENTRY)      default: (void)0)(v, cmp)
-#define vec_bsearch(v, key, cmp)  _Generic((v), REGISTER_TYPES(BSEARCH_ENTRY)   default: (void)0)(v, key, cmp)
+#define vec_push(v, val)          _Generic((v), REGISTER_TYPES(PUSH_ENTRY)      default: 0)       (v, val)
+#define vec_push_slot(v)          _Generic((v), REGISTER_TYPES(PUSH_SLOT_ENTRY) default: (void*)0)(v)
+#define vec_extend(v, arr, count) _Generic((v), REGISTER_TYPES(EXTEND_ENTRY)    default: 0)       (v, arr, count)
+#define vec_reserve(v, cap)       _Generic((v), REGISTER_TYPES(RESERVE_ENTRY)   default: 0)       (v, cap)
+#define vec_is_empty(v)           _Generic((v), REGISTER_TYPES(IS_EMPTY_ENTRY)  default: 0)       (v)
+#define vec_at(v, idx)            _Generic((v), REGISTER_TYPES(AT_ENTRY)        default: (void*)0)(v, idx)
+#define vec_data(v)               _Generic((v), REGISTER_TYPES(DATA_ENTRY)      default: (void*)0)(v)
+#define vec_last(v)               _Generic((v), REGISTER_TYPES(LAST_ENTRY)      default: (void*)0)(v)
+#define vec_free(v)               _Generic((v), REGISTER_TYPES(FREE_ENTRY)      default: (void)0) (v)
+#define vec_pop(v)                _Generic((v), REGISTER_TYPES(POP_ENTRY)       default: (void)0) (v)
+#define vec_pop_get(v)            _Generic((v), REGISTER_TYPES(POP_GET_ENTRY)   default: (void)0) (v)
+#define vec_shrink_to_fit(v)      _Generic((v), REGISTER_TYPES(SHRINK_ENTRY)    default: (void)0) (v)
+#define vec_remove(v, i)          _Generic((v), REGISTER_TYPES(REMOVE_ENTRY)    default: (void)0) (v, i)
+#define vec_swap_remove(v, i)     _Generic((v), REGISTER_TYPES(SWAP_REM_ENTRY)  default: (void)0) (v, i)
+#define vec_clear(v)              _Generic((v), REGISTER_TYPES(CLEAR_ENTRY)     default: (void)0) (v)
+#define vec_reverse(v)            _Generic((v), REGISTER_TYPES(REVERSE_ENTRY)   default: (void)0) (v)
+#define vec_sort(v, cmp)          _Generic((v), REGISTER_TYPES(SORT_ENTRY)      default: (void)0) (v, cmp)
 
-#define vec_init(T) {0}
-#define vec_init_with_cap(T, cap) vec_init_capacity_##T(cap)
+#define vec_init(Name) {0}
+#define vec_init_with_cap(Name, cap) vec_init_capacity_##Name(cap)
 
 #define VEC_CAT(a, b) a##b
 #define VEC_NAME(a, b) VEC_CAT(a, b)
