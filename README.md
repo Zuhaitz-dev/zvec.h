@@ -91,6 +91,7 @@ int main(void)
 | :--- | :--- |
 | `vec_init(Type)` | Returns an empty vector structure initialized to zero. |
 | `vec_init_with_cap(Type, n)` | Returns a vector with initial memory reserved for `n` elements. |
+| `vec_from(Type, ...)` | Returns a vector populated with the provided elements (e.g., `vec_from(int, 1, 2, 3)`). |
 | `vec_free(v)` | Frees the internal memory array and zeroes the vector structure. |
 | `vec_clear(v)` | Sets the length to 0 but keeps the allocated memory capacity. |
 | `vec_reserve(v, n)` | Ensures the vector has capacity for at least `n` elements total. |
@@ -124,7 +125,8 @@ int main(void)
 | :--- | :--- |
 | `vec_foreach(v, iter)` | A loop helper. `iter` must be a pointer variable; it is assigned to each element in the vector sequentially. |
 | `vec_sort(v, cmp)` | Sorts the vector in-place using standard `qsort`. `cmp` is a function pointer: `int (*)(const T*, const T*)`. |
-| `vec_bsearch(v, key, cmp)` | Performs a binary search. Returns a pointer to the found element or `NULL`. `key` is `const void*`. |
+| `vec_bsearch(v, key, cmp)` | Performs a binary search. Returns a pointer to the found element or `NULL`. `key` is `const T*`. |
+| `vec_lower_bound(v, key, cmp)`| Returns a pointer to the first element that does not compare less than `key`. Returns `NULL` if all elements are smaller. |
 
 ## Notes
 
