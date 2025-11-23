@@ -1,3 +1,4 @@
+
 #ifndef ZVEC_H
 #define ZVEC_H
 
@@ -10,6 +11,9 @@
 #define VEC_ERR -1
 
 #define DEFINE_VEC_TYPE(T, Name)                                                            \
+                                                                                            \
+typedef T zvec_T_##Name;                                                                    \
+                                                                                            \
 typedef struct {                                                                            \
     T *data;                                                                                \
     size_t length;                                                                          \
@@ -21,6 +25,15 @@ static inline vec_##Name vec_init_capacity_##Name(size_t cap) {                 
     if (cap > 0) {                                                                          \
         v.data = calloc(cap, sizeof(T));                                                    \
         v.capacity = v.data ? cap : 0;                                                      \
+    }                                                                                       \
+    return v;                                                                               \
+}                                                                                           \
+                                                                                            \
+static inline vec_##Name vec_from_array_##Name(const T *arr, size_t count) {                \
+    vec_##Name v = vec_init_capacity_##Name(count);                                         \
+    if (v.data) {                                                                           \
+        memcpy(v.data, arr, count * sizeof(T));                                             \
+        v.length = count;                                                                   \
     }                                                                                       \
     return v;                                                                               \
 }                                                                                           \
@@ -136,6 +149,30 @@ static inline void vec_sort_##Name(vec_##Name *v, int (*compar)(const T *, const
             (int (*)(const void *, const void *))compar;                                    \
         qsort(v->data, v->length, sizeof(T), qsort_cmp);                                    \
     }                                                                                       \
+}                                                                                           \
+                                                                                            \
+static inline T* vec_bsearch_##Name(vec_##Name *v, const T *key,                            \
+                                    int (*compar)(const T *, const T *)) {                  \
+    if (v->length == 0) return NULL;                                                        \
+    int (*bs_cmp)(const void *, const void *) =                                             \
+        (int (*)(const void *, const void *))compar;                                        \
+    return (T*) bsearch(key, v->data, v->length, sizeof(T), bs_cmp);                        \
+}                                                                                           \
+                                                                                            \
+static inline T* vec_lower_bound_##Name(vec_##Name *v, const T *key,                        \
+                                        int (*compar)(const T *, const T *)) {              \
+    size_t l = 0;                                                                           \
+    size_t r = v->length;                                                                   \
+    while (l < r) {                                                                         \
+        size_t mid = l + (r - l) / 2;                                                       \
+        if (compar(&v->data[mid], key) < 0) {                                               \
+            l = mid + 1;                                                                    \
+        } else {                                                                            \
+            r = mid;                                                                        \
+        }                                                                                   \
+    }                                                                                       \
+    if (l == v->length) return NULL;                                                        \
+    return &v->data[l];                                                                     \
 }
 
 #define PUSH_ENTRY(T, Name)     vec_##Name*: vec_push_##Name,
@@ -155,6 +192,8 @@ static inline void vec_sort_##Name(vec_##Name *v, int (*compar)(const T *, const
 #define CLEAR_ENTRY(T, Name)    vec_##Name*: vec_clear_##Name,
 #define REVERSE_ENTRY(T, Name)  vec_##Name*: vec_reverse_##Name,
 #define SORT_ENTRY(T, Name)     vec_##Name*: vec_sort_##Name,
+#define BSEARCH_ENTRY(T, Name)  vec_##Name*: vec_bsearch_##Name,
+#define LOWER_BOUND_ENTRY(T, Name) vec_##Name*: vec_lower_bound_##Name,
 
 #define vec_push(v, val)          _Generic((v), REGISTER_TYPES(PUSH_ENTRY)      default: 0)       (v, val)
 #define vec_push_slot(v)          _Generic((v), REGISTER_TYPES(PUSH_SLOT_ENTRY) default: (void*)0)(v)
@@ -173,6 +212,11 @@ static inline void vec_sort_##Name(vec_##Name *v, int (*compar)(const T *, const
 #define vec_clear(v)              _Generic((v), REGISTER_TYPES(CLEAR_ENTRY)     default: (void)0) (v)
 #define vec_reverse(v)            _Generic((v), REGISTER_TYPES(REVERSE_ENTRY)   default: (void)0) (v)
 #define vec_sort(v, cmp)          _Generic((v), REGISTER_TYPES(SORT_ENTRY)      default: (void)0) (v, cmp)
+#define vec_bsearch(v, k, c)      _Generic((v), REGISTER_TYPES(BSEARCH_ENTRY)     default: (void*)0)(v, k, c)
+#define vec_lower_bound(v, k, c)  _Generic((v), REGISTER_TYPES(LOWER_BOUND_ENTRY) default: (void*)0)(v, k, c)
+
+#define vec_from(Name, ...) \
+    vec_from_array_##Name((zvec_T_##Name[])__VA_ARGS__, sizeof((zvec_T_##Name[])__VA_ARGS__) / sizeof(zvec_T_##Name))
 
 #define vec_init(Name) {0}
 #define vec_init_with_cap(Name, cap) vec_init_capacity_##Name(cap)
